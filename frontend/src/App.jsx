@@ -35,6 +35,9 @@ import Notifications from './pages/Notifications'
 import getAllReviews from './customHooks/getAllReviews'
 
 export const serverUrl = "http://localhost:8000"
+// export const serverUrl = "http://13.204.131.89:8000"
+
+
 
 function App() {
   
