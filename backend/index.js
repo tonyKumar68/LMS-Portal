@@ -21,7 +21,7 @@ let app = express()
 const httpServer = http.createServer(app)
 const io = new Server(httpServer, {
     cors: {
-        origin: ["http://localhost:5174", "http://localhost:5173", "http://localhost:8000"],
+        origin: ["http://localhost:5174", "http://localhost:5173", "http://techsproutlms.com", "http://localhost:8000"],
         methods: ["GET", "POST"],
         credentials: true
     }
@@ -30,7 +30,7 @@ const io = new Server(httpServer, {
 app.use(express.json())
 app.use(cookieParser())
 app.use(cors({
-    origin:["http://localhost:5174", "http://localhost:5173", "http://localhost:8000"],
+    origin:["http://localhost:5174", "http://localhost:5173", "http://localhost:8000", "http://techsproutlms.com"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials:true
 }))
