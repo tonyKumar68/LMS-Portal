@@ -1,0 +1,6 @@
+- [ ] Fix authentication error in backend/testApi.js (email already exists)
+- [ ] Set OPENAI_API_KEY environment variable
+- [ ] Backend: Thorough testing of all API endpoints (auth, live, user, course, payment, ai, review, admin) with different scenarios (happy paths, error paths, edge cases).
+- [ ] Frontend: Navigation through all pages and sections.
+- [ ] Frontend: Interaction with all links, buttons, and inputs.
+- [ ] Frontend: Testing the entire application flow, including authentication, course enrollment, payment, etc.
