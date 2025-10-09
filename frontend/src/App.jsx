@@ -21,7 +21,7 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import UserManagement from './pages/admin/UserManagement'
 import SystemSettings from './pages/admin/SystemSettings'
 import LiveStream from './components/LiveStream'
-import Chatbot from './components/Chatbot'
+import Chatbot from './components/ChatBot'
 
 import getCouseData from './customHooks/getCouseData'
 import ViewCourse from './pages/ViewCourse'
