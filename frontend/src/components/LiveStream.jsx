@@ -6,8 +6,11 @@ import { useSelector, useDispatch } from 'react-redux';
 import { joinRoom, leaveRoom, addMessage, setLocalStream, addPeer } from '../redux/liveSlice';
 import { serverUrl } from '../App';
 import axios from 'axios';
+import useScreenshotPrevention from '../customHooks/useScreenshotPrevention';
 
 const LiveStream = () => {
+  useScreenshotPrevention(lectureId);
+
   const { lectureId } = useParams();
   const dispatch = useDispatch();
   const { userData } = useSelector((state) => state.user);
@@ -103,6 +106,8 @@ const LiveStream = () => {
       video.srcObject = stream;
       video.play();
       video.className = 'w-64 h-48 object-cover rounded';
+      video.oncontextmenu = (e) => e.preventDefault();
+      video.ondragstart = (e) => e.preventDefault();
       document.getElementById('remote-videos').appendChild(video);
     });
 
@@ -127,7 +132,7 @@ const LiveStream = () => {
       <div className="flex-1 p-4">
         {/* Local Video */}
         <div className="mb-4">
-          <video ref={videoRef} muted className="w-64 h-48 object-cover rounded" />
+          <video ref={videoRef} muted className="w-64 h-48 object-cover rounded" onContextMenu={(e) => e.preventDefault()} onDragStart={(e) => e.preventDefault()} />
           <p>{isEducator ? 'Your Stream (Educator)' : 'Your Stream'}</p>
         </div>
 

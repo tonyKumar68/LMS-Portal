@@ -43,8 +43,33 @@ const userSchema = new mongoose.Schema(
     isOtpVerifed:{
       type:Boolean,
       default:false
+    },
+    violations: [{
+      lectureId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Lecture'
+      },
+      violationType: {
+        type: String,
+        enum: ['screenshot', 'screen_recording', 'copy', 'print', 'dev_tools']
+      },
+      timestamp: {
+        type: Date,
+        default: Date.now
+      }
+    }]
+    ,
+    // When true the server will treat the user's token as invalid and force logout
+    forceLogout: {
+      type: Boolean,
+      default: false
+    },
+    // Optional time until which forceLogout applies; if set and in the past the flag can be cleared
+    forceLogoutUntil: {
+      type: Date,
+      default: null
     }
-    
+
   },
   { timestamps: true }
 );

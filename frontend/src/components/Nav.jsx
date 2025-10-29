@@ -102,6 +102,16 @@ function Nav() {
     setShowPro(false)
   }
 
+  const handleMarkAsRead = async (id) => {
+    if (!id) return;
+    try {
+      await axios.post(`${serverUrl}/api/user/notifications/${id}/read`, {}, {withCredentials: true});
+      dispatch(markNotificationAsRead(id));
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   const closeDropdown = (e) => {
     if (e.target.closest('.profile-dropdown') || e.target.closest('.notification-dropdown')) return;
     setShowPro(false)
@@ -110,9 +120,10 @@ function Nav() {
 
   return (
     <div onClick={closeDropdown}>
-      <div className='w-[100%] h-[70px] fixed top-0 px-[20px] py-[10px] flex items-center justify-between bg-[#00000047]  z-10'>
+      <div className='w-[100%] h-[90px] fixed top-0 px-[20px] py-[10px] flex items-center justify-between bg-[#00000047]  z-[100]'>
         <div className='lg:w-[20%] w-[40%] lg:pl-[50px] '>
-          <img src={logo} className=' w-[60px]  rounded-[5px] border-2 border-white cursor-pointer' onClick={() => navigate("/")} alt="SkillSphere Logo" />
+          <img src={logo} className=' w-[80px] h-[80px] rounded-[5px] border-2 border-white cursor-pointer' onClick={() => navigate("/")} alt="SkillSphere Logo" />
+
         </div>
 
         <div className='w-[30%] lg:flex items-center justify-center gap-4 hidden'>
@@ -133,7 +144,7 @@ function Nav() {
               <button className='px-[20px] py-[10px] lg:bg-white bg-black lg:text-black text-white rounded-[10px] text-[18px] font-light flex gap-2 cursor-pointer items-center justify-center' onClick={() => navigate("/searchwithai")}>Search with AI <img src={ai} className='w-[30px] h-[30px] rounded-full hidden lg:block' alt="" /></button>
               {userData?.role === "student" && (
                 <>
-                  <FaHeart className='w-[30px] h-[30px] fill-red-500 cursor-pointer' onClick={() => navigate("/wishlist")} title="Wishlist" />
+                  <FaHeart className='w-[30px] h-[30px] fill-red-500 cursor-pointer' onClick={(e) => { e.stopPropagation(); navigate("/wishlist"); }} title="Wishlist" />
                   <div className='relative'>
                     <IoMdNotifications className='w-[30px] h-[30px] fill-white cursor-pointer' onClick={(e) => { e.stopPropagation(); setShowNotif(prev => !prev) }} title="Notifications" />
                     {notifications.filter(n => !n.read).length > 0 && (

@@ -10,11 +10,13 @@ const useFetchCurrentUser = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await axios.get(serverUrl + '/api/user/current', { withCredentials: true })
-        dispatch(setUserData(response.data.user))
+        // Align with backend route naming: /api/user/currentuser
+        const response = await axios.get(serverUrl + '/api/user/currentuser', { withCredentials: true })
+        const user = response.data?.user || response.data
+        dispatch(setUserData(user))
       } catch (error) {
         dispatch(setUserData(null))
-        console.error('Failed to fetch current user:', error)
+        console.warn('No active session found when fetching current user')
       }
     }
 

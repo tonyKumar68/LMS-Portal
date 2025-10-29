@@ -7,8 +7,11 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { joinRoom } from '../redux/liveSlice';
 import { serverUrl } from '../App';
+import useScreenshotPrevention from '../customHooks/useScreenshotPrevention';
 
 function ViewLecture() {
+  useScreenshotPrevention(courseId);
+
   const { courseId } = useParams();
   const { courseData } = useSelector((state) => state.course);
   const {userData} = useSelector((state) => state.user)
@@ -18,6 +21,9 @@ function ViewLecture() {
     selectedCourse?.lectures?.[0] || null
   );
   const [isEnrolled, setIsEnrolled] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [showNotes, setShowNotes] = useState(false);
+
   const dispatch = useDispatch();
   const navigate = useNavigate()
   const courseCreator = userData?._id === selectedCourse?.creator ? userData : null;
@@ -35,6 +41,22 @@ function ViewLecture() {
     };
     checkEnrollment();
   }, [userData, courseId]);
+
+  useEffect(() => {
+    if (selectedLecture && courseId) {
+      const key = `${courseId}-${selectedLecture._id}`;
+      const savedNotes = localStorage.getItem(key);
+      setNotes(savedNotes || '');
+    }
+  }, [selectedLecture, courseId]);
+
+  useEffect(() => {
+    if (selectedLecture && courseId) {
+      const key = `${courseId}-${selectedLecture._id}`;
+      localStorage.setItem(key, notes);
+    }
+  }, [notes, selectedLecture, courseId]);
+
 
   const handleStartLive = async () => {
     if (!selectedLecture || !userData?.role === 'educator') return;
@@ -84,6 +106,8 @@ function ViewLecture() {
               controls
               className="w-full h-full object-cover"
               crossOrigin="anonymous"
+              onContextMenu={(e) => e.preventDefault()}
+              onDragStart={(e) => e.preventDefault()}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-white">
@@ -113,6 +137,27 @@ function ViewLecture() {
             )}
           </div>
         )}
+
+        {/* Notes Toggle Button */}
+        {isEnrolled && (
+          <button
+            onClick={() => setShowNotes(!showNotes)}
+            className="w-full bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition mb-4"
+          >
+            {showNotes ? 'Hide Notes' : 'Show Notes'}
+          </button>
+        )}
+
+        {/* Notes Textarea */}
+        {showNotes && (
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Take notes here..."
+            className="w-full h-40 p-3 border border-gray-300 rounded-lg resize-vertical focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+          />
+        )}
+
 
         {/* Selected Lecture Info */}
         <div className="mt-2">

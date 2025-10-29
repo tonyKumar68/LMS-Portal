@@ -1,5 +1,5 @@
 import axios from 'axios'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { FaArrowLeft } from "react-icons/fa"
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -8,28 +8,66 @@ import { setLectureData } from '../../redux/lectureSlice'
 import { toast } from 'react-toastify'
 import { ClipLoader } from 'react-spinners'
 function EditLecture() {
-    const [loading,setLoading]= useState(false)
-    const [loading1,setLoading1]= useState(false)
-    const {courseId , lectureId} = useParams()
-    const {lectureData} = useSelector(state=>state.lecture)
-    const dispatch = useDispatch()
-    const selectedLecture = lectureData.find(lecture => lecture._id === lectureId)
-    const [videoUrl,setVideoUrl] = useState(null)
-    const [lectureTitle,setLectureTitle] = useState(selectedLecture.lectureTitle)
-    const [isPreviewFree,setIsPreviewFree] = useState(false)
+    const { courseId, lectureId } = useParams();
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
 
-    const formData = new FormData()
-    formData.append("lectureTitle",lectureTitle)
-    formData.append("videoUrl",videoUrl)
-    formData.append("isPreviewFree",isPreviewFree)
+    const { lectureData } = useSelector(state => state.lecture);
+    const [selectedLecture, setSelectedLecture] = useState(null);
+
+    const [loading, setLoading] = useState(false);
+    const [loading1, setLoading1] = useState(false);
+    const [pageLoading, setPageLoading] = useState(true);
+
+    const [lectureTitle, setLectureTitle] = useState('');
+    const [videoUrl, setVideoUrl] = useState(null);
+    const [isPreviewFree, setIsPreviewFree] = useState(false);
+
+    useEffect(() => {
+        const lecture = lectureData.find(lec => lec._id === lectureId);
+        if (lecture) {
+            setSelectedLecture(lecture);
+            setLectureTitle(lecture.lectureTitle);
+            setIsPreviewFree(lecture.isPreviewFree || false);
+            setPageLoading(false);
+        } else {
+            // If lecture data is not in redux, fetch it.
+            // This assumes you have an endpoint to get a single course with its lectures.
+            axios.get(`/api/courses/${courseId}`, { withCredentials: true })
+                .then(({ data }) => {
+                    dispatch(setLectureData(data.course.lectures));
+                })
+                .catch(() => toast.error("Failed to fetch lecture data."))
+                .finally(() => setPageLoading(false));
+        }
+    }, [lectureId, lectureData, courseId, dispatch]);
     
 
     const editLecture = async () => {
+      if (!lectureTitle) {
+        toast.error("Lecture title cannot be empty.");
+        return;
+      }
+
       setLoading(true)
+      const formData = new FormData();
+
+      // Only append fields that have a value or have changed
+      formData.append("lectureTitle", lectureTitle);
+      formData.append("isPreviewFree", isPreviewFree);
+      if (videoUrl) {
+        formData.append("videoUrl", videoUrl);
+      }
+
       try {
         const result = await axios.post(serverUrl + `/api/course/editlecture/${lectureId}` , formData , {withCredentials:true})
-        console.log(result.data)
-        dispatch(setLectureData([...lectureData,result.data]))
+        
+        // Correctly update the lecture in the Redux store
+        const updatedLectures = lectureData.map(lec => 
+            lec._id === lectureId ? result.data : lec
+        );
+        dispatch(setLectureData(updatedLectures));
+
         toast.success("Lecture Updated")
         navigate("/courses")
         setLoading(false)
@@ -44,7 +82,6 @@ function EditLecture() {
       setLoading1(true)
       try {
         const result = await axios.delete(serverUrl + `/api/course/removelecture/${lectureId}` , {withCredentials:true})
-        console.log(result.data)
         toast.success("Lecture Removed")
        navigate(`/createlecture/${courseId}`)
         setLoading1(false)
@@ -56,17 +93,23 @@ function EditLecture() {
       
     }
 
+    if (pageLoading) {
+        return <div className="min-h-screen flex items-center justify-center"><ClipLoader size={50} color="black" /></div>;
+    }
 
+    if (!selectedLecture) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold mb-4">Lecture not found</h2>
+                    <p className="text-gray-600 mb-6">It might have been deleted or the link is incorrect.</p>
+                    <button onClick={() => navigate(`/createlecture/${courseId}`)} className="px-4 py-2 bg-black text-white rounded-md">Go Back</button>
+                </div>
+            </div>
+        );
+    }
 
-
-
-
-   
-
-    
-
-    const navigate = useNavigate()
-  return (
+    return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="w-full max-w-xl bg-white rounded-xl shadow-lg p-6 space-y-6">
 
@@ -91,7 +134,7 @@ function EditLecture() {
             <input
               type="text"
               className="w-full p-3 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-[black]focus:outline-none"
-              placeholder={selectedLecture.lectureTitle}
+              placeholder={selectedLecture?.lectureTitle || "Lecture Title"}
               onChange={(e)=>setLectureTitle(e.target.value)}
               value={lectureTitle}
             />
