@@ -1,269 +1,216 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { FaCopy } from 'react-icons/fa';
-import { toast } from 'react-toastify';
-import { serverUrl } from '../App';
+import React, { useState } from "react";
 
 const ChatBot = ({ isStudent }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { sender: 'bot', text: 'Hello! How can I assist you today?' }
-  ]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const messagesEndRef = useRef(null);
+  const [currentLevel, setCurrentLevel] = useState("root");
+  const [selectedAnswer, setSelectedAnswer] = useState("");
 
-  useEffect(() => {
-    if (isOpen) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages, isOpen]);
+  const faqs = {
+    // MAIN MENU
+    root: [
+      { q: "Login or Access Issues", next: "login" },
+      { q: "Course Related Issues", next: "course" },
+      { q: "Watching Recorded Videos", next: "recording" },
+      { q: "Payment or Billing Issues", next: "payment" },
+      { q: "Technical Errors (Website or App)", next: "technical" },
+      { q: "Others", a: "Please describe your issue or contact support." },
+    ],
 
-  if (!isStudent) {
-    return null;
-  }
+    // LOGIN ISSUES
+    login: [
+      { q: "Forgot Password", a: "Click on 'Forgot Password' and reset it via your registered email." },
+      { q: "Email Not Verified", a: "Check your spam folder or request a new verification email." },
+      { q: "Account Locked", a: "Wait 30 minutes or contact support for manual unlock." },
+      { q: "Cannot Login with Google", a: "Clear your browser cache and try again." },
+      { q: "Still not resolved", next: "support" },
+    ],
+
+    // COURSE ISSUES
+    course: [
+      { q: "Course Not Loading", a: "Refresh the page or check your internet connection." },
+      { q: "Lecture Missing", a: "Your instructor may not have published it yet." },
+      { q: "Progress Not Saving", a: "Log out and log back in to sync your progress." },
+      { q: "Cannot Enroll", a: "Ensure your payment or access request is complete." },
+      { q: "Still not resolved", next: "support" },
+    ],
+
+    // WATCHING RECORDED VIDEOS ISSUES
+    recording: [
+      { q: "Video Not Playing", a: "Try refreshing the page or switching browsers (e.g., Chrome, Edge)." },
+      { q: "Audio Not Working", a: "Check system volume and browser site permissions for sound." },
+      { q: "Video Buffering or Lagging", a: "Reduce playback quality or use a stable Wi-Fi connection." },
+      { q: "Video Stuck or Frozen", a: "Reload the lecture page or clear browser cache." },
+      { q: "Playback Speed Not Changing", a: "Try updating your browser or reopening the player." },
+      { q: "Cannot View in Fullscreen", a: "Allow fullscreen permission in your browser settings." },
+      { q: "Subtitle / Transcript Missing", a: "The instructor may not have uploaded subtitles yet." },
+      { q: "Video Crashes the App", a: "Update to the latest app version or use the web browser instead." },
+      { q: "Still not resolved", next: "support" },
+    ],
+
+    // PAYMENT ISSUES
+    payment: [
+      { q: "Payment Failed", a: "Retry after a few minutes or try another payment method." },
+      { q: "Transaction Pending", a: "Please wait for 30 minutes; some banks take time to confirm." },
+      { q: "Refund Request", a: "Contact support with your transaction ID and reason." },
+      { q: "Duplicate Payment", a: "Send both receipts to support for review." },
+      { q: "Still not resolved", next: "support" },
+    ],
+
+    // TECHNICAL ERRORS
+    technical: [
+      { q: "Website Not Loading", a: "Try another browser or clear cache and cookies." },
+      { q: "App Keeps Crashing", a: "Uninstall and reinstall, or update to the latest version." },
+      { q: "Error Message on Screen", a: "Take a screenshot and share it with support." },
+      { q: "Slow Performance", a: "Close other tabs or restart your device to free memory." },
+      { q: "Still not resolved", next: "support" },
+    ],
+
+    // SUPPORT
+    support: [
+      {
+        q: "📞 Contact Support",
+        a: "Please contact our helpdesk:\nPhone: +91-9876543210\nEmail: support@example.com",
+      },
+      { q: "🔙 Go Back to Main Menu", next: "root" },
+    ],
+  };
 
   const toggleChat = () => {
-    setIsOpen(prev => !prev);
-  };
-
-  const handleSend = async () => {
-    if (!input.trim()) return;
-
-    const userMessage = { sender: 'user', text: input.trim() };
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setLoading(true);
-    setError(null);
-
-    // Add a placeholder for the bot's response
-    const botMessagePlaceholder = { sender: 'bot', text: '' };
-    setMessages(prev => [...prev, botMessagePlaceholder]);
-
-    try {
-      const response = await fetch(`${serverUrl}/api/ai/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message: userMessage.text })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let done = false;
-
-      while (!done) {
-        const { value, done: readerDone } = await reader.read();
-        done = readerDone;
-        const chunk = decoder.decode(value, { stream: !done });
-
-        // Process server-sent events
-        const eventLines = chunk.split('\n\n').filter(line => line.trim());
-        for (const line of eventLines) {
-          if (line.startsWith('data:')) {
-            const jsonData = line.substring(5);
-            try {
-              const parsedData = JSON.parse(jsonData);
-              if (parsedData.error) {
-                // Handle error sent from the stream
-                setError(parsedData.error);
-                setMessages(prev => prev.slice(0, -1)); // Remove placeholder
-                const errorMessage = { sender: 'bot', text: parsedData.error };
-                setMessages(prev => [...prev, errorMessage]);
-                return; // Stop processing on error
-              }
-              if (parsedData.reply) {
-                // Append the new chunk to the last message
-                setMessages(prev =>
-                  prev.map((msg, index) =>
-                    index === prev.length - 1 ? { ...msg, text: msg.text + parsedData.reply } : msg
-                  )
-                );
-              }
-            } catch (e) {
-              console.error('Failed to parse stream data:', jsonData, e);
-              setError('Failed to parse stream data.');
-            }
-          }
-        }
-      }
-    } catch (err) {
-      setError('Error: ' + err.message);
-      const errorMessage = { sender: 'bot', text: 'Sorry, there was an error processing your request.' };
-      setMessages(prev => prev.slice(0, -1).concat(errorMessage)); // Replace placeholder with error
-    } finally {
-      setLoading(false);
+    setIsOpen(!isOpen);
+    if (isOpen) {
+      setCurrentLevel("root");
+      setSelectedAnswer("");
     }
   };
 
-  const handleCopy = (text) => {
-    if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(text)
-        .then(() => toast.success('Copied to clipboard!'))
-        .catch(err => toast.error('Failed to copy!'));
+  const handleOptionClick = (option) => {
+    if (option.a) {
+      setSelectedAnswer(option.a);
     } else {
-      toast.warn('Clipboard access is not available.');
+      setSelectedAnswer("");
+    }
+    if (option.next) {
+      setCurrentLevel(option.next);
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
+  if (!isStudent) return null;
 
   return (
     <>
       {!isOpen && (
         <button
           onClick={toggleChat}
-          aria-label="Open ChatBot"
           style={{
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
-            width: '60px',
-            height: '60px',
-            borderRadius: '50%',
-            backgroundColor: '#007bff',
-            border: 'none',
-            color: '#fff',
-            fontSize: '30px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-            zIndex: 1000,
+            position: "fixed",
+            bottom: "20px",
+            right: "20px",
+            width: "60px",
+            height: "60px",
+            borderRadius: "50%",
+            backgroundColor: "#007bff",
+            color: "white",
+            fontSize: "28px",
+            border: "none",
+            cursor: "pointer",
+            boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+            zIndex: 9999,
           }}
         >
           💬
         </button>
       )}
+
       {isOpen && (
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          width: '320px',
-          height: '400px',
-          border: '1px solid #ccc',
-          borderRadius: '8px',
-          backgroundColor: '#fff',
-          boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-          display: 'flex',
-          flexDirection: 'column',
-          zIndex: 1000,
-          fontFamily: 'Arial, sans-serif'
-        }}>
-          <div style={{
-            padding: '10px',
-            borderBottom: '1px solid #ddd',
-            fontWeight: 'bold',
-            fontSize: '16px',
-            backgroundColor: '#f5f5f5',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            ChatBot
+        <div
+          style={{
+            position: "fixed",
+            bottom: "20px",
+            right: "20px",
+            width: "350px",
+            height: "450px",
+            background: "white",
+            borderRadius: "8px",
+            border: "1px solid #ccc",
+            boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+            display: "flex",
+            flexDirection: "column",
+            fontFamily: "Arial, sans-serif",
+            zIndex: 9999,
+          }}
+        >
+          {/* Header */}
+          <div
+            style={{
+              backgroundColor: "#007bff",
+              color: "white",
+              padding: "10px 15px",
+              fontWeight: "bold",
+              fontSize: "16px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            Help ChatBot
             <button
               onClick={toggleChat}
-              aria-label="Close ChatBot"
               style={{
-                background: 'none',
-                border: 'none',
-                fontSize: '20px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
+                background: "none",
+                border: "none",
+                color: "white",
+                fontSize: "20px",
+                cursor: "pointer",
               }}
             >
               ×
             </button>
           </div>
-          <div style={{
-            flex: 1,
-            padding: '10px',
-            overflowY: 'auto',
-            backgroundColor: '#fafafa'
-          }}>
-            {messages.map((msg, idx) => (
-              <div key={idx} style={{
-                display: 'flex',
-                justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start',
-                marginBottom: '10px',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', maxWidth: '90%' }}>
-                  <div style={{
-                    padding: '8px 12px',
-                    borderRadius: '16px',
-                    backgroundColor: msg.sender === 'user' ? '#007bff' : '#e5e5ea',
-                    color: msg.sender === 'user' ? '#fff' : '#000',
-                    wordWrap: 'break-word',
-                    order: msg.sender === 'user' ? 2 : 1,
-                  }}>
-                    {msg.text}
-                  </div>
-                  {msg.sender === 'bot' && msg.text && (
-                    <button
-                      onClick={() => handleCopy(msg.text)}
-                      aria-label="Copy message"
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: '#6c757d',
-                        order: 2,
-                      }}
-                    >
-                      <FaCopy />
-                    </button>
-                  )}
-                </div>
-              </div>
+
+          {/* Options */}
+          <div
+            style={{
+              flex: 1,
+              padding: "10px",
+              overflowY: "auto",
+              backgroundColor: "#f9f9f9",
+            }}
+          >
+            <p style={{ fontWeight: "bold", marginBottom: "8px" }}>Select an issue:</p>
+            {faqs[currentLevel].map((faq, index) => (
+              <label
+                key={index}
+                onClick={() => handleOptionClick(faq)}
+                style={{
+                  display: "block",
+                  padding: "8px 10px",
+                  marginBottom: "5px",
+                  backgroundColor: "#f1f1f1",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                }}
+              >
+                {faq.q}
+              </label>
             ))}
-            {loading && <div>Loading...</div>}
-            {error && <div style={{ color: 'red' }}>{error}</div>}
-            <div ref={messagesEndRef} />
           </div>
-          <div style={{ padding: '10px', borderTop: '1px solid #ddd' }}>
-            <textarea
-              rows={2}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Type your message..."
+
+          {/* Answer */}
+          {selectedAnswer && (
+            <div
               style={{
-                width: '100%',
-                resize: 'none',
-                padding: '8px',
-                borderRadius: '4px',
-                border: '1px solid #ccc',
-                fontSize: '14px',
-                fontFamily: 'inherit'
-              }}
-            />
-            <button
-              onClick={handleSend}
-              disabled={loading}
-              style={{
-                marginTop: '6px',
-                width: '100%',
-                padding: '8px',
-                backgroundColor: '#007bff',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontWeight: 'bold'
+                padding: "10px",
+                borderTop: "1px solid #ddd",
+                backgroundColor: "#fff",
+                color: "#000",
+                fontSize: "14px",
+                whiteSpace: "pre-line",
               }}
             >
-              Send
-            </button>
-          </div>
+              <strong>Answer:</strong>
+              <p style={{ marginTop: "5px" }}>{selectedAnswer}</p>
+            </div>
+          )}
         </div>
       )}
     </>

@@ -1,4 +1,5 @@
-import uploadOnCloudinary from "../configs/cloudinary.js";
+import { uploadFileToS3, deleteFileFromS3 } from "../configs/awsS3.js";
+import { v4 as uuidv4 } from 'uuid';
 import User from "../models/userModel.js";
 
 export const getCurrentUser = async (req,res) => {
@@ -20,7 +21,13 @@ export const UpdateProfile = async (req,res) => {
         const {name , description} = req.body
         let photoUrl
         if(req.file){
-           photoUrl =await uploadOnCloudinary(req.file.path)
+            const user = await User.findById(userId);
+            if (user && user.photoUrl) {
+                const oldKey = user.photoUrl.split('/').pop();
+                await deleteFileFromS3(oldKey);
+            }
+            const key = `profile-photos/${uuidv4()}-${req.file.originalname}`;
+            photoUrl = await uploadFileToS3(req.file.path, key);
         }
         const user = await User.findByIdAndUpdate(userId,{name,description,photoUrl})
 

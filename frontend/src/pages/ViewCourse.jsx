@@ -10,6 +10,8 @@ import { setSelectedCourseData } from '../redux/courseSlice';
 import { FaLock, FaPlayCircle } from "react-icons/fa";
 import { toast } from 'react-toastify';
 import { FaStar } from "react-icons/fa6";
+import Livechatbox from '../components/Livechatbox';
+import ScrollToTop from '../components/ScrollToTop';
 
 
 function ViewCourse() {
@@ -171,8 +173,8 @@ setIsEnrolled(true)
     console.error("Enroll Error:", err);
   }
 };
-
   return (
+    <>
      <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto bg-white shadow-md rounded-xl p-6 space-y-6 relative">
 
@@ -369,6 +371,12 @@ setIsEnrolled(true)
     </div>
     </div>
     </div>
+    {/* Scroll and Chat Section */}
+      <ScrollToTop />
+      {userData?.role === "student" && (
+        <Livechatbox isStudent={true} courseId={courseId} />
+      )}
+     </>
   )
 }
 

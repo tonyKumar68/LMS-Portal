@@ -20,7 +20,24 @@ const lectureSchema = new mongoose.Schema({
     },
     liveRoomId: {
         type: String
-    }
+    },
+    violations: [{
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        violationType: {
+            type: String,
+            enum: ['screenshot', 'screen_recording', 'copy', 'print', 'dev_tools']
+        },
+        timestamp: {
+            type: Date,
+            default: Date.now
+        },
+        ipAddress: {
+            type: String
+        }
+    }]
 },{timestamps:true})
 
 

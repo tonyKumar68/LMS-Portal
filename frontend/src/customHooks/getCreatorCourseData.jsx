@@ -8,26 +8,29 @@ import { toast } from 'react-toastify'
 const getCreatorCourseData = () => {
     const dispatch = useDispatch()
     const {userData} = useSelector(state=>state.user)
-  return (
-    useEffect(()=>{
+
+  useEffect(()=>{
+    // Only fetch creator-specific data when we have an authenticated user.
+    // This prevents public page loads from triggering protected endpoints
+    // that return 401 and cause a redirect via the axios interceptor.
+    if (!userData) return
+
     const getCreatorData = async () => {
       try {
         const result = await axios.get(serverUrl + "/api/course/getcreatorcourses" , {withCredentials:true})
-        
-         await dispatch(setCreatorCourseData(result.data))
-
-        
+        await dispatch(setCreatorCourseData(result.data))
         console.log(result.data)
-        
       } catch (error) {
         console.log(error)
-        toast.error(error.response.data.message)
+        // Only show a toast for non-auth-related errors
+        if (error.response?.status !== 401) {
+          toast.error(error.response?.data?.message || 'Failed to fetch creator courses')
+        }
       }
-      
     }
+
     getCreatorData()
-  },[userData])
-  )
+  },[userData, dispatch])
 }
 
 export default getCreatorCourseData
