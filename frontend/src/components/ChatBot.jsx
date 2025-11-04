@@ -4,6 +4,8 @@ const ChatBot = ({ isStudent }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentLevel, setCurrentLevel] = useState("root");
   const [selectedAnswer, setSelectedAnswer] = useState("");
+  const [customIssue, setCustomIssue] = useState(false);
+  const [userMessage, setUserMessage] = useState("");
 
   const faqs = {
     // MAIN MENU
@@ -80,15 +82,26 @@ const ChatBot = ({ isStudent }) => {
     if (isOpen) {
       setCurrentLevel("root");
       setSelectedAnswer("");
+      setCustomIssue(false);
+      setUserMessage("");
     }
   };
 
   const handleOptionClick = (option) => {
+    if (option.q === "Report an Issue") {
+      setCustomIssue(true);
+      setSelectedAnswer("");
+      return;
+    }
+
     if (option.a) {
       setSelectedAnswer(option.a);
+      setCustomIssue(false);
     } else {
       setSelectedAnswer("");
+      setCustomIssue(false);
     }
+
     if (option.next) {
       setCurrentLevel(option.next);
     }
@@ -209,6 +222,55 @@ const ChatBot = ({ isStudent }) => {
             >
               <strong>Answer:</strong>
               <p style={{ marginTop: "5px" }}>{selectedAnswer}</p>
+            </div>
+          )}
+
+          {/* Custom issue input for "Report an Issue" */}
+          {customIssue && (
+            <div
+              style={{
+                padding: "10px",
+                borderTop: "1px solid #ddd",
+                backgroundColor: "#fff",
+              }}
+            >
+              <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Describe your issue:</p>
+              <textarea
+                value={userMessage}
+                onChange={(e) => setUserMessage(e.target.value)}
+                placeholder="Type your issue here..."
+                style={{
+                  width: "100%",
+                  height: "80px",
+                  borderRadius: "5px",
+                  border: "1px solid #ccc",
+                  padding: "8px",
+                  fontSize: "14px",
+                }}
+              />
+              <button
+                onClick={() => {
+                  if (userMessage.trim() === "") {
+                    alert("Please describe your issue before submitting.");
+                    return;
+                  }
+                  alert(`Your issue has been submitted: ${userMessage}`);
+                  setUserMessage("");
+                  setCustomIssue(false);
+                  setSelectedAnswer("Thank you! Our support team will get back to you soon.");
+                }}
+                style={{
+                  marginTop: "8px",
+                  backgroundColor: "#007bff",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  padding: "8px 12px",
+                  cursor: "pointer",
+                }}
+              >
+                Submit
+              </button>
             </div>
           )}
         </div>
