@@ -1,46 +1,64 @@
 import mongoose from "mongoose";
 
-const lectureSchema = new mongoose.Schema({
-    lectureTitle:{
-        type:String,
-        required:true
+const lectureSchema = new mongoose.Schema(
+  {
+    lectureTitle: {
+      type: String,
+      required: [true, "Lecture title is required"],
+      trim: true,
     },
-    videoUrl:{
-        type:String
+
+    videoUrl: {
+      type: String,
+      default: "",
     },
-    isPreviewFree:{
-        type:Boolean
+
+    isPreviewFree: {
+      type: Boolean,
+      default: false,
     },
+
+    // ✅ LIVE CLASS SETTINGS
     isLive: {
-        type: Boolean,
-        default: false
+      type: Boolean,
+      default: false,
     },
+
     liveStartTime: {
-        type: Date
+      type: Date,
+      default: null,
     },
+
     liveRoomId: {
-        type: String
+      type: String,
+      default: null,
     },
-    violations: [{
+
+    // ✅ SECURITY LOGS
+    violations: [
+      {
         userId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User'
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
         },
         violationType: {
-            type: String,
-            enum: ['screenshot', 'screen_recording', 'copy', 'print', 'dev_tools']
+          type: String,
+          enum: ["screenshot", "screen_recording", "copy", "print", "dev_tools"],
         },
         timestamp: {
-            type: Date,
-            default: Date.now
+          type: Date,
+          default: Date.now,
         },
         ipAddress: {
-            type: String
-        }
-    }]
-},{timestamps:true})
+          type: String,
+          default: "",
+        },
+      },
+    ],
+  },
+  { timestamps: true }
+);
 
+const Lecture = mongoose.model("Lecture", lectureSchema);
 
-const Lecture = mongoose.model("Lecture" , lectureSchema)
-
-export default Lecture
+export default Lecture;

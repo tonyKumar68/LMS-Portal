@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FaPlayCircle } from 'react-icons/fa';
 import { FaArrowLeftLong } from "react-icons/fa6";
 import axios from 'axios';
-import { toast } from 'react-toastify';
-import { joinRoom } from '../redux/liveSlice';
 import { serverUrl } from '../App';
 import useScreenshotPrevention from '../customHooks/useScreenshotPrevention';
 
 function ViewLecture() {
+  const { courseId } = useParams();
   useScreenshotPrevention(courseId);
 
-  const { courseId } = useParams();
   const { courseData } = useSelector((state) => state.course);
-  const {userData} = useSelector((state) => state.user)
+  const { userData } = useSelector((state) => state.user);
+
   const selectedCourse = courseData?.find((course) => course._id === courseId);
 
   const [selectedLecture, setSelectedLecture] = useState(
@@ -22,83 +21,96 @@ function ViewLecture() {
   );
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [notes, setNotes] = useState('');
-  const [showNotes, setShowNotes] = useState(false);
 
-  const dispatch = useDispatch();
-  const navigate = useNavigate()
-  const courseCreator = userData?._id === selectedCourse?.creator ? userData : null;
+  const navigate = useNavigate();
 
+  // ✅ Check if student is enrolled
   useEffect(() => {
     const checkEnrollment = async () => {
       if (!userData || !courseId) return;
+
       try {
-        const res = await axios.get(`${serverUrl}/api/courses/enrolled/${courseId}`, { withCredentials: true });
+        const res = await axios.get(
+          `${serverUrl}/api/courses/enrolled/${courseId}`,
+          { withCredentials: true }
+        );
         setIsEnrolled(res.data.enrolled);
-      } catch (error) {
-        console.error('Enrollment check failed:', error);
+      } catch {
         setIsEnrolled(false);
       }
     };
+
     checkEnrollment();
   }, [userData, courseId]);
 
-  useEffect(() => {
-    if (selectedLecture && courseId) {
-      const key = `${courseId}-${selectedLecture._id}`;
-      const savedNotes = localStorage.getItem(key);
-      setNotes(savedNotes || '');
-    }
-  }, [selectedLecture, courseId]);
-
-  useEffect(() => {
-    if (selectedLecture && courseId) {
-      const key = `${courseId}-${selectedLecture._id}`;
-      localStorage.setItem(key, notes);
-    }
-  }, [notes, selectedLecture, courseId]);
-
-
-  const handleStartLive = async () => {
-    if (!selectedLecture || !userData?.role === 'educator') return;
+  // ✅ Load notes from backend
+  const loadNotesFromDB = async () => {
     try {
-      const res = await axios.post(`${serverUrl}/api/live/start-live/${selectedLecture._id}`, {}, { withCredentials: true });
-      toast.success('Live session started!');
-      navigate(`/live/${selectedLecture._id}`);
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to start live session');
+      const res = await axios.post(
+        `${serverUrl}/api/notes/get`,
+        { courseId, lectureId: selectedLecture._id },
+        { withCredentials: true }
+      );
+
+      if (res.data.success) {
+        setNotes(res.data.notes || "");
+      }
+    } catch (err) {
+      console.log("Error loading notes");
     }
   };
 
-  const handleJoinLive = async () => {
-    if (!selectedLecture || !isEnrolled) return;
+  // ✅ Save notes to backend
+  const saveNotesToDB = async (newNotes) => {
     try {
-      const res = await axios.get(`${serverUrl}/api/live/join-live/${selectedLecture._id}`, { withCredentials: true });
-      const { roomId } = res.data;
-      dispatch(joinRoom({ roomId, isEducator: false }));
-      navigate(`/live/${selectedLecture._id}`);
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to join live session');
+      await axios.post(
+        `${serverUrl}/api/notes/save`,
+        {
+          courseId,
+          lectureId: selectedLecture._id,
+          notes: newNotes,
+        },
+        { withCredentials: true }
+      );
+    } catch (err) {
+      console.log("Note save failed");
     }
   };
 
+  // ✅ Load notes when lecture changes
+  useEffect(() => {
+    if (!selectedLecture) return;
+    loadNotesFromDB();
+  }, [selectedLecture]);
+
+  // ✅ Auto-save notes (backend + localstorage)
+  const handleNotesChange = (e) => {
+    const newNotes = e.target.value;
+    setNotes(newNotes);
+
+    // local backup
+    const key = `${courseId}-${selectedLecture._id}`;
+    localStorage.setItem(key, newNotes);
+
+    // backend save
+    saveNotesToDB(newNotes);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 flex flex-col md:flex-row gap-6">
-     
-      {/* Left - Video & Course Info */}
+
       <div className="w-full md:w-2/3 bg-white rounded-2xl shadow-md p-6 border border-gray-200">
-        {/* Course Details */}
-        <div className="mb-6" >
-           
-          <h1 className="text-2xl font-bold flex items-center justify-start gap-[20px]  text-gray-800"><FaArrowLeftLong  className=' text-black w-[22px] h-[22px] cursor-pointer' onClick={()=>navigate("/")}/>{selectedCourse?.title}</h1>
-          
-          <div className="mt-2 flex gap-4 text-sm text-gray-500 font-medium">
-            <span>Category: {selectedCourse?.category}</span>
-            <span>Level: {selectedCourse?.level}</span>
-          </div>
+
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold flex items-center gap-[20px] text-gray-800">
+            <FaArrowLeftLong
+              className="text-black w-[22px] h-[22px] cursor-pointer"
+              onClick={() => navigate("/")}
+            />
+            {selectedCourse?.title}
+          </h1>
         </div>
 
-        {/* Video Player */}
         <div className="aspect-video bg-black rounded-xl overflow-hidden mb-4 border border-gray-300">
           {selectedLecture?.videoUrl ? (
             <video
@@ -107,7 +119,6 @@ function ViewLecture() {
               className="w-full h-full object-cover"
               crossOrigin="anonymous"
               onContextMenu={(e) => e.preventDefault()}
-              onDragStart={(e) => e.preventDefault()}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-white">
@@ -116,103 +127,49 @@ function ViewLecture() {
           )}
         </div>
 
-        {/* Live Session Buttons */}
-        {selectedLecture && (
-          <div className="flex flex-col gap-2 mb-4">
-            {userData?.role === 'educator' && courseCreator && !selectedLecture.isLive && (
-              <button
-                onClick={handleStartLive}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition"
-              >
-                Start Live Session
-              </button>
-            )}
-            {isEnrolled && selectedLecture.isLive && new Date(selectedLecture.liveStartTime) < new Date() && (
-              <button
-                onClick={handleJoinLive}
-                className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition"
-              >
-                Join Live Session
-              </button>
-            )}
+        {/* ✅ NOTEPAD always under video */}
+        {isEnrolled && (
+          <div className="mt-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">📝 Notes</h3>
+            <textarea
+              value={notes}
+              onChange={handleNotesChange}
+              placeholder="Write your notes here..."
+              className="w-full h-40 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+            />
+            <p className="text-xs text-gray-500">Notes auto-saved ✅</p>
           </div>
         )}
 
-        {/* Notes Toggle Button */}
-        {isEnrolled && (
-          <button
-            onClick={() => setShowNotes(!showNotes)}
-            className="w-full bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition mb-4"
-          >
-            {showNotes ? 'Hide Notes' : 'Show Notes'}
-          </button>
-        )}
-
-        {/* Notes Textarea */}
-        {showNotes && (
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Take notes here..."
-            className="w-full h-40 p-3 border border-gray-300 rounded-lg resize-vertical focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
-          />
-        )}
-
-
-        {/* Selected Lecture Info */}
-        <div className="mt-2">
-          <h2 className="text-lg font-semibold text-gray-800">{selectedLecture?.lectureTitle}</h2>
-          
-        </div>
+        <h2 className="text-lg font-semibold text-gray-800">
+          {selectedLecture?.lectureTitle}
+        </h2>
       </div>
 
-      {/* Right - All Lectures + Creator Info */}
+      {/* Right panel */}
       <div className="w-full md:w-1/3 bg-white rounded-2xl shadow-md p-6 border border-gray-200 h-fit">
         <h2 className="text-xl font-bold mb-4 text-gray-800">All Lectures</h2>
-        <div className="flex flex-col gap-3 mb-6">
-          {selectedCourse?.lectures?.length > 0 ? (
-            selectedCourse.lectures.map((lecture, index) => (
-              <button
-                key={index}
-                onClick={() => setSelectedLecture(lecture)}
-                className={`flex items-center justify-between p-3 rounded-lg border transition text-left ${
-                  selectedLecture?._id === lecture._id
-                    ? 'bg-gray-200 border-gray-500'
-                    : 'hover:bg-gray-50 border-gray-300'
-                }`}
-              >
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-800">{lecture.lectureTitle}</h4>
-                  
-                </div>
-                <FaPlayCircle className="text-black text-xl" />
-              </button>
-            ))
-          ) : (
-            <p className="text-gray-500">No lectures available.</p>
-          )}
-        </div>
 
-        {/* Creator Info */}
-        {courseCreator && (
-  <div className="mt-4 border-t pt-4">
-    <h3 className="text-md font-semibold text-gray-700 mb-3">Instructor</h3>
-    <div className="flex items-center gap-4">
-      <img
-        src={courseCreator.photoUrl || '/default-avatar.png'}
-        alt="Instructor"
-        className="w-14 h-14 rounded-full object-cover border"
-      />
-      <div>
-        <h4 className="text-base font-medium text-gray-800">{courseCreator.name}</h4>
-        <p className="text-sm text-gray-600">
-          {courseCreator.description || 'No bio available.'}
-        </p>
+        <div className="flex flex-col gap-3 mb-6">
+          {selectedCourse?.lectures?.map((lecture, index) => (
+            <button
+              key={index}
+              onClick={() => setSelectedLecture(lecture)}
+              className={`flex items-center justify-between p-3 rounded-lg border transition text-left ${
+                selectedLecture?._id === lecture._id
+                  ? 'bg-gray-200 border-gray-500'
+                  : 'hover:bg-gray-50 border-gray-300'
+              }`}
+            >
+              <h4 className="text-sm font-semibold text-gray-800">
+                {lecture.lectureTitle}
+              </h4>
+              <FaPlayCircle className="text-black text-xl" />
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
-  </div>
-        )}
-      </div>
+
     </div>
   );
 }
