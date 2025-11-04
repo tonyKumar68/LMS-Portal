@@ -7,6 +7,9 @@ import ai from "../../assets/ai1.png";
 import it from "../../assets/it.png";
 import data from "../../assets/data.png";
 import "./HeroSection.css";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+
 
 function HeroSection() {
   const navigate = useNavigate();

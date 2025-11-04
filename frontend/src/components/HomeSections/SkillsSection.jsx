@@ -6,6 +6,9 @@ import itImg from "../../assets/it.png";
 import dataImg from "../../assets/data.png";
 import heroImg from "../../assets/hero.png";
 import "./SkillsSection.css";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+
 
 function SkillsSection() {
   const skills = [

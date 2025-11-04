@@ -24,6 +24,7 @@ import UserManagement from './pages/admin/UserManagement'
 import SystemSettings from './pages/admin/SystemSettings'
 import LiveStream from './components/LiveStream'
 import Chatbot from './components/ChatBot'
+import { useLocation } from 'react-router-dom'
 
 import getCouseData from './customHooks/getCouseData'
 import ViewCourse from './pages/ViewCourse'
@@ -45,11 +46,20 @@ function App() {
 
   let {userData} = useSelector(state=>state.user)
 
+   // ADD: read current URL path
+  const location = useLocation();
+
   useFetchCurrentUser()
   useScreenshotPrevention()
   getCouseData()
   getCreatorCourseData()
   getAllReviews()
+
+  // Detect if the current page is a course or lecture page
+const isCoursePage =
+  location.pathname.startsWith("/viewcourse") ||
+  location.pathname.startsWith("/viewlecture");
+  
   return (
     <>
       <ToastContainer />
