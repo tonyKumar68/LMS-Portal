@@ -151,7 +151,7 @@ const Livechatbox = ({ isStudent, courseId }) => {
     {!isOpen && (
       <button
         onClick={toggleChat}
-        className="fixed bottom-6 left-6 w-14 h-14 bg-green-600 text-white text-2xl flex items-center justify-center shadow-lg hover:bg-green-700 transition-colors duration-200 z-[9999]"
+        className="fixed bottom-6 right-6 w-14 h-14 bg-green-600 text-white text-2xl flex items-center justify-center shadow-lg hover:bg-green-700 transition-colors duration-200 z-[9999]"
         aria-label="Open ChatBot"
       >
         💬
@@ -162,7 +162,7 @@ const Livechatbox = ({ isStudent, courseId }) => {
     {isOpen && (
       <div
       ref={chatWindowRef}
-      className="fixed bottom-6 left-6 w-96 h-[450px] bg-white shadow-2xl flex flex-col border border-gray-300 z-[9999] transition-all duration-300">
+      className="fixed bottom-6 right-6 w-96 h-[450px] bg-white shadow-2xl flex flex-col border border-gray-300 z-[9999] transition-all duration-300">
         
         {/* Header */}
         <div className="flex justify-between items-center bg-green-600 text-white px-4 py-3 text-lg font-semibold">

@@ -59,14 +59,17 @@ function App() {
 const isCoursePage =
   location.pathname.startsWith("/viewcourse") ||
   location.pathname.startsWith("/viewlecture");
-  
+
   return (
     <>
       <ToastContainer />
       <ScrollToTop/>
       <div className="screenshot-overlay"></div>
       <div className="flash-overlay" id="flashOverlay"></div>
-      {userData?.role === "student" && <Chatbot isStudent={true} />}
+      {/* inside App.jsx (bottom part of return) */}
+      {userData?.role === "student" && !location.pathname.includes("/viewcourse") && (
+      <Chatbot isStudent={true} />
+       )}
       <Routes>
         {/* Public homepage always visible */}
         <Route path='/' element={<Home/>}/>
