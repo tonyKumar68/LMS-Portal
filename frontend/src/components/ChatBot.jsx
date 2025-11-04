@@ -13,7 +13,7 @@ const ChatBot = ({ isStudent }) => {
       { q: "Watching Recorded Videos", next: "recording" },
       { q: "Payment or Billing Issues", next: "payment" },
       { q: "Technical Errors (Website or App)", next: "technical" },
-      { q: "Others", a: "Please describe your issue or contact support." },
+      { q: "Report an Issue", a: "Please describe your issue or contact support." },
     ],
 
     // LOGIN ISSUES
